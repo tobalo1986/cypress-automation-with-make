@@ -1,16 +1,15 @@
 const { defineConfig } = require('cypress');
 
 module.exports = defineConfig({
-  reporter: 'json', // Utiliza el reportero JSON predeterminado
+  reporter: 'json',
   reporterOptions: {
-    outputFile: 'results.json', // Nombre del archivo de salida (en la raíz del proyecto)
+    outputFile: 'results.json', // Archivo donde se guardan los resultados
   },
   e2e: {
-    baseUrl: 'http://localhost:3000', // Cambia al URL y puerto donde se ejecuta tu aplicación
     setupNodeEvents(on, config) {
-      // Lugar para personalizar eventos si es necesario
+      // Aquí puedes añadir eventos personalizados si necesitas
     },
-    specPattern: 'cypress/e2e/**/*.cy.{js,jsx,ts,tsx}', // Define el patrón de búsqueda de pruebas
   },
 });
+
 
