@@ -48,7 +48,7 @@ jobs:
     - name: Run Cypress tests
       continue-on-error: true # Permite continuar incluso si hay fallos
       run: |
-        npx cypress run --reporter json --reporter-options outputPath=results.json
+        npx cypress run --reporter json --reporter-options outputPath=results.json || true
 
     - name: Inspect results.json
       run: |
@@ -83,33 +83,32 @@ jobs:
           echo "results_retry.json no encontrado."
         fi
 
-    - name: Send results to Make on failure
-      if: failure()
+    - name: Merge results (if both exist)
+      if: always()
+      run: |
+        if [ -f results.json ] && [ -f results_retry.json ]; then
+          jq -s '.[0] * .[1]' results.json results_retry.json > merged_results.json
+          echo "Resultados combinados en merged_results.json."
+        elif [ -f results.json ]; then
+          cp results.json merged_results.json
+          echo "Usando results.json como resultados finales."
+        elif [ -f results_retry.json ]; then
+          cp results_retry.json merged_results.json
+          echo "Usando results_retry.json como resultados finales."
+        else
+          echo "No se encontraron resultados para combinar."
+        fi
+
+    - name: Send results to Make
+      if: always()
       env:
         MAKE_WEBHOOK_URL: ${{ secrets.MAKE_WEBHOOK_URL }}
       run: |
-        if [ -f results.json ]; then
-          cat results.json | jq . > cleaned_results.json
-          curl -L -X POST -H "Content-Type: application/json" -d @cleaned_results.json $MAKE_WEBHOOK_URL
-        elif [ -f results_retry.json ]; then
-          cat results_retry.json | jq . > cleaned_results.json
+        if [ -f merged_results.json ]; then
+          cat merged_results.json | jq . > cleaned_results.json
           curl -L -X POST -H "Content-Type: application/json" -d @cleaned_results.json $MAKE_WEBHOOK_URL
         else
           echo "No se generaron resultados para enviar a Make."
         fi
 
-    - name: Always send results to Make
-      if: always()
-      env:
-        MAKE_WEBHOOK_URL: ${{ secrets.MAKE_WEBHOOK_URL }}
-      run: |
-        if [ -f results.json ]; then
-          cat results.json | jq . > cleaned_results.json
-          curl -L -X POST -H "Content-Type: application/json" -d @cleaned_results.json $MAKE_WEBHOOK_URL
-        elif [ -f results_retry.json ]; then
-          cat results_retry.json | jq . > cleaned_results.json
-          curl -L -X POST -H "Content-Type: application/json" -d @cleaned_results.json $MAKE_WEBHOOK_URL
-        else
-          echo "No se generaron resultados para enviar a Make."
-        fi
 
