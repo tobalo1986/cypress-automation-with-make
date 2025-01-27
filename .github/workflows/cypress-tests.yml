@@ -10,60 +10,48 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: 18
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
 
-    - name: Cache Node.js modules
-      uses: actions/cache@v3
-      with:
-        path: ~/.npm
-        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-        restore-keys: |
-          ${{ runner.os }}-node-
+      - name: Install dependencies
+        run: npm install
 
-    - name: Install dependencies
-      run: |
-        npm install -g npm
-        npm install
+      - name: Start Xvfb
+        run: |
+          Xvfb :99 -screen 0 1280x1024x24 &
+          export DISPLAY=:99
 
-    - name: Install Cypress
-      run: |
-        chmod +x ./node_modules/.bin/cypress
-        npx cypress install
+      - name: Run Cypress tests
+        run: npx cypress run --reporter json --reporter-options toConsole=true | tee results.json
 
-    - name: Debug Cypress Install
-      run: |
-        DEBUG=cypress:* npx cypress install
+      - name: Inspect results.json
+        run: |
+          if [ -f results.json ]; then
+            cat results.json
+          else
+            echo "results.json no encontrado."
+          fi
 
-    - name: Run Cypress tests
-      run: npx cypress run --reporter json --reporter-options toConsole=true | tee results.json
+      - name: Debug Webhook URL
+        run: |
+          curl -I ${{ secrets.MAKE_WEBHOOK_URL }}
 
-    - name: Send results to Make on failure
-      if: failure()
-      env:
-        MAKE_WEBHOOK_URL: ${{ secrets.MAKE_WEBHOOK_URL }}
-      run: |
-        if [ -f results.json ]; then
-          curl -X POST -H "Content-Type: application/json" -d @results.json $MAKE_WEBHOOK_URL
-        else
-          echo "results.json no encontrado. Nada que enviar."
-        fi
+      - name: Send results to Make on failure
+        if: failure()
+        env:
+          MAKE_WEBHOOK_URL: ${{ secrets.MAKE_WEBHOOK_URL }}
+        run: |
+          if [ -f results.json ]; then
+            curl -L -X POST -H "Content-Type: application/json" -d @results.json $MAKE_WEBHOOK_URL
+          else
+            echo "Archivo results.json no encontrado. Nada que enviar."
+          fi
 
-    - name: Always send results to Make
-      if: always()
-      env:
-        MAKE_WEBHOOK_URL: ${{ secrets.MAKE_WEBHOOK_URL }}
-      run: |
-        if [ -f results.json ]; then
-          curl -X POST -H "Content-Type: application/json" -d @results.json $MAKE_WEBHOOK_URL
-        else
-          echo "results.json no encontrado. Nada que enviar."
-        fi
 
         
 
