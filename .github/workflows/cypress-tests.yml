@@ -16,13 +16,29 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
-        node-version: 18 # Asegúrate de usar una versión compatible con Cypress
+        node-version: 18
+
+    - name: Cache Node.js modules
+      uses: actions/cache@v3
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
 
     - name: Install dependencies
-      run: npm install
+      run: |
+        npm install -g npm
+        npm install
 
     - name: Install Cypress
-      run: npx cypress install
+      run: |
+        chmod +x ./node_modules/.bin/cypress
+        npx cypress install
+
+    - name: Debug Cypress Install
+      run: |
+        DEBUG=cypress:* npx cypress install
 
     - name: Run Cypress tests
       run: npx cypress run --reporter json --reporter-options toConsole=true | tee results.json
@@ -48,6 +64,7 @@ jobs:
         else
           echo "results.json no encontrado. Nada que enviar."
         fi
+
         
 
 
