@@ -41,37 +41,34 @@ jobs:
         chmod +x ./node_modules/.bin/cypress
         npx cypress install --force
 
-    # 6. Depuración de la instalación de Cypress (opcional)
-    - name: Debug Cypress Install
-      run: |
-        DEBUG=cypress:* npx cypress install
-
-    # 7. Ejecución de pruebas con Cypress
+    # 6. Ejecución de pruebas con Cypress
     - name: Run Cypress tests
       run: npx cypress run --reporter json --reporter-options toConsole=true | tee results.json
 
-    # 8. Enviar resultados al webhook en caso de error
+    # 7. Enviar resultados al webhook en caso de error
     - name: Send results to Make on failure
       if: failure()
       env:
         MAKE_WEBHOOK_URL: ${{ secrets.MAKE_WEBHOOK_URL }}
       run: |
         if [ -f results.json ]; then
-          cat results.json | jq '.' | curl -X POST -H "Content-Type: application/json" -d @- $MAKE_WEBHOOK_URL
+          grep -o '{.*}' results.json | jq '.' | curl -X POST -H "Content-Type: application/json" -d @- $MAKE_WEBHOOK_URL
         else
           echo "results.json no encontrado. Nada que enviar."
         fi
 
-    # 9. Siempre enviar resultados al webhook
+    # 8. Siempre enviar resultados al webhook
     - name: Always send results to Make
       if: always()
       env:
         MAKE_WEBHOOK_URL: ${{ secrets.MAKE_WEBHOOK_URL }}
       run: |
         if [ -f results.json ]; then
-          cat results.json | jq '.' | curl -X POST -H "Content-Type: application/json" -d @- $MAKE_WEBHOOK_URL
+          grep -o '{.*}' results.json | jq '.' | curl -X POST -H "Content-Type: application/json" -d @- $MAKE_WEBHOOK_URL
         else
           echo "results.json no encontrado. Nada que enviar."
         fi
+
+
 
 
