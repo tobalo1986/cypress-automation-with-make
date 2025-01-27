@@ -32,7 +32,7 @@ describe('prueba test', () => {
     });
 });
 
-//prueba de commit 123456
+//prueba de commit 1234567
 
         
 
