@@ -31,10 +31,13 @@ jobs:
         npm install -g npm
         npm install
 
-    - name: Install Cypress and Mochawesome
+    - name: Install Cypress
       run: |
         chmod +x ./node_modules/.bin/cypress
         npx cypress install
+
+    - name: Install Mochawesome
+      run: |
         npm install mochawesome --save-dev
 
     - name: Run Cypress tests with Mochawesome
@@ -70,3 +73,4 @@ jobs:
         else
           echo "No se generaron resultados para enviar a Make."
         fi
+
