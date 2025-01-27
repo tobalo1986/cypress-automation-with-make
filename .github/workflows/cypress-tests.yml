@@ -19,6 +19,26 @@ jobs:
     - name: Run Cypress tests
       run: npx cypress run --reporter json --reporter-options toConsole=true | tee results.json
 
-    - name: Send results to Make
+    - name: Send results to Make on failure
       if: failure()
-      run: curl -X POST -H "Content-Type: application/json" -d @results.json {{MAKE_WEBHOOK_URL}}
+      env:
+        MAKE_WEBHOOK_URL: ${{ secrets.MAKE_WEBHOOK_URL }}
+      run: |
+        if [ -f results.json ]; then
+          curl -X POST -H "Content-Type: application/json" -d @results.json $MAKE_WEBHOOK_URL
+        else
+          echo "results.json no encontrado. Nada que enviar."
+        fi
+
+    - name: Always send results to Make
+      if: always()
+      env:
+        MAKE_WEBHOOK_URL: ${{ secrets.MAKE_WEBHOOK_URL }}
+      run: |
+        if [ -f results.json ]; then
+          curl -X POST -H "Content-Type: application/json" -d @results.json $MAKE_WEBHOOK_URL
+        else
+          echo "results.json no encontrado. Nada que enviar."
+        fi
+
+    
