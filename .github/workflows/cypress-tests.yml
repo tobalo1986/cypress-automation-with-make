@@ -40,8 +40,30 @@ jobs:
       run: |
         DEBUG=cypress:* npx cypress install
 
+    - name: Start Xvfb
+      run: |
+        Xvfb :99 -screen 0 1280x1024x24 &
+        export DISPLAY=:99
+
     - name: Run Cypress tests
-      run: npx cypress run --reporter json --reporter-options toConsole=true | tee results.json
+      run: npx cypress run --reporter json --reporter-options outputPath=results.json
+
+    - name: Inspect results.json
+      run: |
+        if [ -f results.json ]; then
+          echo "Contenido de results.json:"
+          cat results.json
+        else
+          echo "results.json no encontrado."
+        fi
+
+    - name: Validate JSON
+      run: |
+        if [ -f results.json ]; then
+          jq empty results.json && echo "JSON válido." || echo "JSON no válido."
+        else
+          echo "results.json no encontrado."
+        fi
 
     - name: Send results to Make on failure
       if: failure()
@@ -49,9 +71,10 @@ jobs:
         MAKE_WEBHOOK_URL: ${{ secrets.MAKE_WEBHOOK_URL }}
       run: |
         if [ -f results.json ]; then
-          curl -X POST -H "Content-Type: application/json" -d @results.json $MAKE_WEBHOOK_URL
+          cat results.json | jq . > cleaned_results.json
+          curl -L -X POST -H "Content-Type: application/json" -d @cleaned_results.json $MAKE_WEBHOOK_URL
         else
-          echo "results.json no encontrado. Nada que enviar."
+          echo "Archivo results.json no encontrado. Nada que enviar."
         fi
 
     - name: Always send results to Make
@@ -60,12 +83,8 @@ jobs:
         MAKE_WEBHOOK_URL: ${{ secrets.MAKE_WEBHOOK_URL }}
       run: |
         if [ -f results.json ]; then
-          curl -X POST -H "Content-Type: application/json" -d @results.json $MAKE_WEBHOOK_URL
+          cat results.json | jq . > cleaned_results.json
+          curl -L -X POST -H "Content-Type: application/json" -d @cleaned_results.json $MAKE_WEBHOOK_URL
         else
-          echo "results.json no encontrado. Nada que enviar."
+          echo "Archivo results.json no encontrado. Nada que enviar."
         fi
-
-        
-
-
-    
