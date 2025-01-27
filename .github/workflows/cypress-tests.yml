@@ -13,8 +13,16 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 18 # Asegúrate de usar una versión compatible con Cypress
+
     - name: Install dependencies
       run: npm install
+
+    - name: Install Cypress
+      run: npx cypress install
 
     - name: Run Cypress tests
       run: npx cypress run --reporter json --reporter-options toConsole=true | tee results.json
@@ -40,5 +48,6 @@ jobs:
         else
           echo "results.json no encontrado. Nada que enviar."
         fi
+
 
     
