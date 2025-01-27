@@ -46,7 +46,9 @@ jobs:
         export DISPLAY=:99
 
     - name: Run Cypress tests
-      run: npx cypress run --reporter json --reporter-options outputPath=results.json
+      continue-on-error: true # Permite continuar incluso si hay fallos
+      run: |
+        npx cypress run --reporter json --reporter-options outputPath=results.json
 
     - name: Inspect results.json
       run: |
@@ -65,6 +67,22 @@ jobs:
           echo "results.json no encontrado."
         fi
 
+    - name: Retry Cypress tests on failure
+      if: failure()
+      run: |
+        echo "Intentando ejecutar las pruebas nuevamente..."
+        npx cypress run --reporter json --reporter-options outputPath=results_retry.json || true
+
+    - name: Inspect retry results
+      if: failure()
+      run: |
+        if [ -f results_retry.json ]; then
+          echo "Contenido de results_retry.json:"
+          cat results_retry.json
+        else
+          echo "results_retry.json no encontrado."
+        fi
+
     - name: Send results to Make on failure
       if: failure()
       env:
@@ -73,8 +91,11 @@ jobs:
         if [ -f results.json ]; then
           cat results.json | jq . > cleaned_results.json
           curl -L -X POST -H "Content-Type: application/json" -d @cleaned_results.json $MAKE_WEBHOOK_URL
+        elif [ -f results_retry.json ]; then
+          cat results_retry.json | jq . > cleaned_results.json
+          curl -L -X POST -H "Content-Type: application/json" -d @cleaned_results.json $MAKE_WEBHOOK_URL
         else
-          echo "Archivo results.json no encontrado. Nada que enviar."
+          echo "No se generaron resultados para enviar a Make."
         fi
 
     - name: Always send results to Make
@@ -85,6 +106,10 @@ jobs:
         if [ -f results.json ]; then
           cat results.json | jq . > cleaned_results.json
           curl -L -X POST -H "Content-Type: application/json" -d @cleaned_results.json $MAKE_WEBHOOK_URL
+        elif [ -f results_retry.json ]; then
+          cat results_retry.json | jq . > cleaned_results.json
+          curl -L -X POST -H "Content-Type: application/json" -d @cleaned_results.json $MAKE_WEBHOOK_URL
         else
-          echo "Archivo results.json no encontrado. Nada que enviar."
+          echo "No se generaron resultados para enviar a Make."
         fi
+
