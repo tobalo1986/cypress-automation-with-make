@@ -16,99 +16,17 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
-        node-version: 18
-
-    - name: Cache Node.js modules
-      uses: actions/cache@v3
-      with:
-        path: ~/.npm
-        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-        restore-keys: |
-          ${{ runner.os }}-node-
+        node-version: 18 # Asegúrate de usar una versión compatible con Cypress
 
     - name: Install dependencies
-      run: |
-        npm install -g npm
-        npm install
+      run: npm install
 
     - name: Install Cypress
-      run: |
-        chmod +x ./node_modules/.bin/cypress
-        npx cypress install
-
-    - name: Debug Cypress Install
-      run: |
-        DEBUG=cypress:* npx cypress install
-
-    - name: Start Xvfb
-      run: |
-        Xvfb :99 -screen 0 1280x1024x24 &
-        export DISPLAY=:99
+      run: npx cypress install
 
     - name: Run Cypress tests
-      continue-on-error: true # Permite continuar incluso si hay fallos
-      run: |
-        npx cypress run --reporter json --reporter-options outputPath=results.json || true
-
-    - name: Inspect results.json
-      run: |
-        if [ -f results.json ]; then
-          echo "Contenido de results.json:"
-          cat results.json
-        else
-          echo "results.json no encontrado."
-        fi
-
-    - name: Validate JSON
-      run: |
-        if [ -f results.json ]; then
-          jq empty results.json && echo "JSON válido." || echo "JSON no válido."
-        else
-          echo "results.json no encontrado."
-        fi
-
-    - name: Retry Cypress tests on failure
-      if: failure()
-      run: |
-        echo "Intentando ejecutar las pruebas nuevamente..."
-        npx cypress run --reporter json --reporter-options outputPath=results_retry.json || true
-
-    - name: Inspect retry results
-      if: failure()
-      run: |
-        if [ -f results_retry.json ]; then
-          echo "Contenido de results_retry.json:"
-          cat results_retry.json
-        else
-          echo "results_retry.json no encontrado."
-        fi
-
-    - name: Merge results (if both exist)
-      if: always()
-      run: |
-        if [ -f results.json ] && [ -f results_retry.json ]; then
-          jq -s '.[0] * .[1]' results.json results_retry.json > merged_results.json
-          echo "Resultados combinados en merged_results.json."
-        elif [ -f results.json ]; then
-          cp results.json merged_results.json
-          echo "Usando results.json como resultados finales."
-        elif [ -f results_retry.json ]; then
-          cp results_retry.json merged_results.json
-          echo "Usando results_retry.json como resultados finales."
-        else
-          echo "No se encontraron resultados para combinar."
-        fi
+      run: npx cypress run --reporter json --reporter-options toConsole=true | tee results.json
 
     - name: Send results to Make
-      if: always()
-      env:
-        MAKE_WEBHOOK_URL: ${{ secrets.MAKE_WEBHOOK_URL }}
-      run: |
-        if [ -f merged_results.json ]; then
-          cat merged_results.json | jq . > cleaned_results.json
-          curl -L -X POST -H "Content-Type: application/json" -d @cleaned_results.json $MAKE_WEBHOOK_URL
-        else
-          echo "No se generaron resultados para enviar a Make."
-        fi
-
-
+      if: failure()
+      run: curl -X POST -H "Content-Type: application/json" -d @results.json ${{ secrets.MAKE_WEBHOOK_URL }}
