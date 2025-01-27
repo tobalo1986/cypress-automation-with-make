@@ -47,42 +47,22 @@ jobs:
         chmod +x ./node_modules/.bin/cypress
         npx cypress install
 
-    - name: Install Mochawesome
-      run: |
-        npm install mochawesome --save-dev
-
-    - name: Run Cypress tests with Mochawesome
+    - name: Run Cypress tests
       continue-on-error: true
       run: |
-        xvfb-run -a npx cypress run --reporter mochawesome --reporter-options "reportDir=cypress/reports,reportFilename=results,overwrite=true,json=true,html=false"
-
-    - name: Inspect results.json
-      run: |
-        if [ -f cypress/reports/results.json ]; then
-          echo "Contenido de cypress/reports/results.json:"
-          cat cypress/reports/results.json
-        else
-          echo "cypress/reports/results.json no encontrado."
-        fi
-
-    - name: Validate JSON
-      run: |
-        if [ -f cypress/reports/results.json ]; then
-          jq empty cypress/reports/results.json && echo "JSON válido." || echo "JSON no válido."
-        else
-          echo "cypress/reports/results.json no encontrado."
-        fi
+        xvfb-run -a npx cypress run --reporter json --reporter-options "outputFile=results.json"
 
     - name: Send results to Make
       if: always()
       env:
         MAKE_WEBHOOK_URL: ${{ secrets.MAKE_WEBHOOK_URL }}
       run: |
-        if [ -f cypress/reports/results.json ]; then
-          cat cypress/reports/results.json | jq . > cleaned_results.json
+        if [ -f results.json ]; then
+          cat results.json | jq . > cleaned_results.json
           curl -L -X POST -H "Content-Type: application/json" -d @cleaned_results.json $MAKE_WEBHOOK_URL
         else
           echo "No se generaron resultados para enviar a Make."
         fi
+
 
 

@@ -1,23 +1,19 @@
 const { defineConfig } = require('cypress');
 
 module.exports = defineConfig({
-  reporter: 'mochawesome', // Reporter para generar reportes JSON y opcionalmente HTML
+  reporter: 'json', // Usa el reportero JSON predeterminado
   reporterOptions: {
-    reportDir: 'cypress/reports', // Directorio donde se guardan los reportes
-    overwrite: true,
-    html: false, // Desactiva la generación de HTML (si solo necesitas JSON)
-    json: true,  // Activa la generación de JSON
-    reportFilename: 'results', // Nombre del archivo generado
+    outputFile: 'results.json', // Guarda el archivo directamente en la raíz del proyecto
   },
   e2e: {
-    baseUrl: 'http://localhost:3000', // URL base de tu aplicación, ajusta según sea necesario
+    baseUrl: 'http://localhost:3000', // Ajusta según la URL y el puerto de tu aplicación
     setupNodeEvents(on, config) {
-      // Puedes agregar eventos aquí si lo necesitas
+      // Configuración personalizada de eventos si es necesaria
     },
-    supportFile: false, // Si no necesitas un archivo de soporte
-    specPattern: 'cypress/e2e/**/*.cy.{js,jsx,ts,tsx}', // Patrón de búsqueda de los archivos de prueba
+    specPattern: 'cypress/e2e/**/*.cy.{js,jsx,ts,tsx}', // Ruta de las pruebas
   },
 });
+
 
 
 
