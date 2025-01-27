@@ -1,0 +1,24 @@
+name: Cypress Automation
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  cypress-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Run Cypress tests
+      run: npx cypress run --reporter json --reporter-options toConsole=true | tee results.json
+
+    - name: Send results to Make
+      if: failure()
+      run: curl -X POST -H "Content-Type: application/json" -d @results.json {{MAKE_WEBHOOK_URL}}
