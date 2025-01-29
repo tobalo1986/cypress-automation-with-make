@@ -10,24 +10,43 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    # 1. Checkout del repositorio
     - name: Checkout repository
       uses: actions/checkout@v3
 
+    # 2. Configuración de Node.js
     - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
         node-version: 18
 
+    # 3. Cache de módulos de Node.js
+    - name: Cache Node.js modules
+      uses: actions/cache@v3
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
+
+    # 4. Instalación de dependencias
     - name: Install dependencies
-      run: npm install
+      run: |
+        npm install -g npm
+        npm install
 
+    # 5. Instalación de Cypress con permisos correctos
     - name: Install Cypress
-      run: npx cypress install --force
+      run: |
+        chmod -R 777 ./node_modules/.bin/
+        npx cypress install --force
 
+    # 6. Ejecución de pruebas con Cypress
     - name: Run Cypress tests
       run: npx cypress run --reporter json --reporter-options toConsole=true | tee results.json
 
-    - name: Send email with results
+    # 7. Enviar resultados por correo electrónico mediante Gmail SMTP
+    - name: Send email with test results
       if: always()
       uses: dawidd6/action-send-mail@v3
       with:
@@ -35,9 +54,16 @@ jobs:
         server_port: 587
         username: ${{ secrets.EMAIL_USERNAME }}
         password: ${{ secrets.EMAIL_PASSWORD }}
-        subject: Cypress Test Results
+        subject: "[Cypress] Resultados de pruebas"
         body: |
-          Los resultados de las pruebas están adjuntos. Revisa el archivo para más detalles.
+          Hola,
+          
+          Se adjuntan los resultados de las pruebas Cypress ejecutadas en GitHub Actions.
+          - Total de pruebas: ${{ env.TEST_TOTAL }}
+          - Pruebas aprobadas: ${{ env.TEST_PASSED }}
+          - Pruebas fallidas: ${{ env.TEST_FAILED }}
+
+          Revisa el archivo adjunto para más detalles.
         to: ${{ secrets.EMAIL_RECIPIENT }}
         from: ${{ secrets.EMAIL_USERNAME }}
         attachments: results.json
