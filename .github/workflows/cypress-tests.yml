@@ -10,65 +10,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # 1. Checkout del repositorio
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    # 2. Configuración de Node.js
     - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
         node-version: 18
 
-    # 3. Cache de módulos de Node.js
-    - name: Cache Node.js modules
-      uses: actions/cache@v3
-      with:
-        path: ~/.npm
-        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-        restore-keys: |
-          ${{ runner.os }}-node-
-
-    # 4. Instalación de dependencias
     - name: Install dependencies
-      run: |
-        npm install -g npm
-        npm install
+      run: npm install
 
-    # 5. Instalación de Cypress
     - name: Install Cypress
-      run: |
-        chmod +x ./node_modules/.bin/cypress
-        npx cypress install --force
+      run: npx cypress install --force
 
-    # 6. Ejecución de pruebas con Cypress
     - name: Run Cypress tests
       run: npx cypress run --reporter json --reporter-options toConsole=true | tee results.json
 
-    # 7. Enviar resultados al webhook en caso de error
-    - name: Send results to Make on failure
-      if: failure()
-      env:
-        MAKE_WEBHOOK_URL: ${{ secrets.MAKE_WEBHOOK_URL }}
-      run: |
-        if [ -f results.json ]; then
-          grep -o '{.*}' results.json | jq '.' | curl -X POST -H "Content-Type: application/json" -d @- $MAKE_WEBHOOK_URL
-        else
-          echo "results.json no encontrado. Nada que enviar."
-        fi
-
-    # 8. Siempre enviar resultados al webhook
-    - name: Always send results to Make
+    - name: Send email with results
       if: always()
-      env:
-        MAKE_WEBHOOK_URL: ${{ secrets.MAKE_WEBHOOK_URL }}
-      run: |
-        if [ -f results.json ]; then
-          grep -o '{.*}' results.json | jq '.' | curl -X POST -H "Content-Type: application/json" -d @- $MAKE_WEBHOOK_URL
-        else
-          echo "results.json no encontrado. Nada que enviar."
-        fi
-
-
-
-
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: smtp.gmail.com
+        server_port: 587
+        username: ${{ secrets.EMAIL_USERNAME }}
+        password: ${{ secrets.EMAIL_PASSWORD }}
+        subject: Cypress Test Results
+        body: |
+          Los resultados de las pruebas están adjuntos. Revisa el archivo para más detalles.
+        to: ${{ secrets.EMAIL_RECIPIENT }}
+        from: ${{ secrets.EMAIL_USERNAME }}
+        attachments: results.json
