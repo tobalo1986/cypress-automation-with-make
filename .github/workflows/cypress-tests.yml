@@ -10,15 +10,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # 1. Checkout del repositorio
+    # 1. Checkout del repositorio con profundidad 1 para acelerar la descarga
     - name: Checkout repository
       uses: actions/checkout@v3
+      with:
+        fetch-depth: 1  # Optimización: Solo descargar la última versión
 
-    # 2. Configuración de Node.js
+    # 2. Configuración de Node.js con cache automático
     - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
         node-version: 18
+        cache: 'npm'  # Optimización: Habilita cache automático para npm
 
     # 3. Cache de módulos de Node.js
     - name: Cache Node.js modules
@@ -59,7 +62,7 @@ jobs:
       uses: dawidd6/action-send-mail@v3
       with:
         server_address: smtp.gmail.com
-        server_port: 587
+        server_port: 465  # Cambiar a SSL en lugar de TLS
         username: ${{ secrets.EMAIL_USERNAME }}
         password: ${{ secrets.EMAIL_PASSWORD }}
         subject: "[Cypress] Resultados de pruebas"
@@ -72,6 +75,6 @@ jobs:
         to: ${{ secrets.EMAIL_RECIPIENT }}
         from: ${{ secrets.EMAIL_USERNAME }}
         attachments: results.json
-        secure: true  # Forzar TLS
+        secure: false  # Cambiado a false para usar SSL en el puerto 465
         ignore_cert: true  # Ignorar posibles problemas con certificados
 
