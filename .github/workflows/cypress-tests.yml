@@ -45,7 +45,15 @@ jobs:
     - name: Run Cypress tests
       run: npx cypress run --reporter json --reporter-options toConsole=true | tee results.json
 
-    # 7. Enviar resultados por correo electrónico mediante Gmail SMTP
+    # 7. Verificar versión de OpenSSL en GitHub Actions
+    - name: Check OpenSSL Version
+      run: openssl version
+
+    # 8. Actualizar OpenSSL si es necesario
+    - name: Update OpenSSL
+      run: sudo apt-get install --only-upgrade openssl
+
+    # 9. Enviar resultados por correo electrónico mediante Gmail SMTP
     - name: Send email with test results using Gmail
       if: always()
       uses: dawidd6/action-send-mail@v3
@@ -64,4 +72,6 @@ jobs:
         to: ${{ secrets.EMAIL_RECIPIENT }}
         from: ${{ secrets.EMAIL_USERNAME }}
         attachments: results.json
-        secure: true
+        secure: true  # Forzar TLS
+        ignore_cert: true  # Ignorar posibles problemas con certificados
+
