@@ -46,7 +46,7 @@ jobs:
       run: npx cypress run --reporter json --reporter-options toConsole=true | tee results.json
 
     # 7. Enviar resultados por correo electrónico mediante Gmail SMTP
-    - name: Send email with test results
+    - name: Send email with test results using Gmail
       if: always()
       uses: dawidd6/action-send-mail@v3
       with:
@@ -57,13 +57,11 @@ jobs:
         subject: "[Cypress] Resultados de pruebas"
         body: |
           Hola,
-          
-          Se adjuntan los resultados de las pruebas Cypress ejecutadas en GitHub Actions.
-          - Total de pruebas: ${{ env.TEST_TOTAL }}
-          - Pruebas aprobadas: ${{ env.TEST_PASSED }}
-          - Pruebas fallidas: ${{ env.TEST_FAILED }}
 
+          Se adjuntan los resultados de las pruebas Cypress ejecutadas en GitHub Actions.
           Revisa el archivo adjunto para más detalles.
+
         to: ${{ secrets.EMAIL_RECIPIENT }}
         from: ${{ secrets.EMAIL_USERNAME }}
         attachments: results.json
+        secure: true
